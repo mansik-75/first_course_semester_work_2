@@ -14,9 +14,16 @@ class EditWin(QMainWindow, edit.Ui_MainWindow):
         self.pushButton.clicked.connect(lambda x: print(self.username))
         self.edit_scene = QtWidgets.QGraphicsScene()
         self.graphicsView.setScene(self.edit_scene)
+        self.game_page = GameWin()
+
+        self.pushButton_2.clicked.connect(self.go_to_game_page)
 
     def grid(self):
         pass
+
+    def go_to_game_page(self):
+        self.game_page.show()
+        self.close()
 
 
 class GameWin(QMainWindow, game.Ui_MainWindow):
