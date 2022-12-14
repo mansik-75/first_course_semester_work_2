@@ -5,6 +5,15 @@ import socket
 import threading
 
 
+def draw_grid(view, scene):
+
+    view.setScene(scene)
+
+    for i in range(40, 361, 40):
+        scene.addLine(0, i, 397, i)
+        scene.addLine(i, 0, i, 397)
+
+
 class EditWin(QMainWindow, edit.Ui_MainWindow):
 
     def __init__(self,):
@@ -12,14 +21,10 @@ class EditWin(QMainWindow, edit.Ui_MainWindow):
         self.setupUi(self)
         self.username = ''
         self.pushButton.clicked.connect(lambda x: print(self.username))
-        self.edit_scene = QtWidgets.QGraphicsScene()
-        self.graphicsView.setScene(self.edit_scene)
         self.game_page = GameWin()
-
         self.pushButton_2.clicked.connect(self.go_to_game_page)
-
-    def grid(self):
-        pass
+        self.edit_scene = QtWidgets.QGraphicsScene()
+        draw_grid(self.graphicsView, self.edit_scene)
 
     def go_to_game_page(self):
         self.game_page.show()
@@ -33,8 +38,8 @@ class GameWin(QMainWindow, game.Ui_MainWindow):
         self.setupUi(self)
         self.scene_main = QtWidgets.QGraphicsScene()
         self.scene_en = QtWidgets.QGraphicsScene()
-        self.graphicsView.setScene(self.scene_main)
-        self.graphicsView_2.setScene(self.scene_en)
+        draw_grid(self.graphicsView, self.scene_main)
+        draw_grid(self.graphicsView_2, self.scene_en)
 
 
 class StartWin(QMainWindow, start.Ui_MainWindow):
