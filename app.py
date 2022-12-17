@@ -1,4 +1,4 @@
-from PyQt6.QtGui import QColor, QPolygon
+from PyQt6.QtGui import QColor
 
 from win_py import edit, game, start
 from PyQt6.QtWidgets import QMainWindow, QApplication
@@ -17,10 +17,11 @@ class MainDrawer:
             scene.addLine(0, i, 397, i)
             scene.addLine(i, 0, i, 397)
 
-    @staticmethod
-    def draw_ships(scene: QtWidgets.QGraphicsScene):
-        for i in range(0, 361, 40):
-            scene.addRect(i, i, 40, 40, QColor(183, 117, 117))
+    def draw_ships(self):
+        for i in range(1, 11):
+            for j in range(1, 11):
+                if self.ships[i][j] == 1:
+                    self.user_scene.addRect((j-1)*40+5, (i-1)*40+5, 30, 30, brush=QColor(183, 117, 117))
 
 
 class EditWin(QMainWindow, edit.Ui_MainWindow, MainDrawer):
@@ -36,8 +37,8 @@ class EditWin(QMainWindow, edit.Ui_MainWindow, MainDrawer):
         self.orientation = 'g'
         self.radioButton_5.setChecked(True)
 
-        self.pushButton.clicked.connect(lambda x: print(self.username))
-        self.pushButton_2.clicked.connect(self.go_to_game_page)
+        self.pushButton.clicked.connect(self.delete_all_ships_from_board)  # кнопка очистить
+        self.pushButton_2.clicked.connect(self.go_to_game_page)  # кнопка подтвердить
 
         self.radioButton.clicked.connect(lambda: self.set_ship_type(1))
         self.radioButton_2.clicked.connect(lambda: self.set_ship_type(2))
@@ -46,8 +47,8 @@ class EditWin(QMainWindow, edit.Ui_MainWindow, MainDrawer):
         self.radioButton_5.clicked.connect(lambda: self.set_orientation('g'))
         self.radioButton_6.clicked.connect(lambda: self.set_orientation('v'))
 
-        self.edit_scene = QtWidgets.QGraphicsScene()
-        self.draw_grid(self.graphicsView, self.edit_scene)
+        self.user_scene = QtWidgets.QGraphicsScene()
+        self.draw_grid(self.graphicsView, self.user_scene)
 
         self.setWindowTitle(f'Привет, {self.username}!')
 
@@ -55,7 +56,7 @@ class EditWin(QMainWindow, edit.Ui_MainWindow, MainDrawer):
         position = a0.pos()
         item_pos = self.graphicsView.mapFrom(self, position)
         x, y = item_pos.x()//40+1, item_pos.y()//40+1
-        print(x, y)
+        print(y, x)
         if 0 < x < 11 and 0 < y < 11:
             self.set_ship(y, x)
 
@@ -68,7 +69,12 @@ class EditWin(QMainWindow, edit.Ui_MainWindow, MainDrawer):
 
     def set_ship(self, x, y):
         check = self.check_position(x, y)
+        print(self.ships)
+        print(check)
         if check:
+            if self.ships_count[self.ship_type - 1] <= 0:
+                return
+            self.ships_count[self.ship_type - 1] -= 1
             if self.orientation == 'g':
                 for i in range(y, y + self.ship_type):
                     self.ships[x][i] = 1
@@ -81,33 +87,13 @@ class EditWin(QMainWindow, edit.Ui_MainWindow, MainDrawer):
                     self.ships[i][y - 1] = self.ships[i][y + 1] = 2
                 self.ships[x - 1][y - 1] = self.ships[x - 1][y] = self.ships[x - 1][y + 1] = 2
                 self.ships[x + self.ship_type][y - 1] = self.ships[x + self.ship_type][y] = self.ships[x + self.ship_type][y + 1] = 2
-
-        for i in self.ships:
-            print(*i)
-        for i in range(1, 11):
-            for j in range(1, 11):
-                if self.ships[i][j] == 1:
-                    self.edit_scene.addRect((j-1)*40+5, (i-1)*40+5, 30, 30, brush=QColor(183, 117, 117))
-
-    def set_battleship(self):
-        """Линкор 4 клетки"""
-        pass
-
-    def set_cruiser(self):
-        """Крейсер 3 клетки"""
-        pass
-
-    def set_destroyer(self):
-        """Эсминец 2 клетки"""
-        pass
-
-    def set_cutter(self):
-        """Катер 1 клетка"""
-        pass
+        self.draw_ships()
 
     def go_to_game_page(self):
-        self.game_page = GameWin(self.username)
-        self.game_page.show()
+        if sum(self.ships_count) != 0:
+            return
+        game_page = GameWin(self.username, self.ships)
+        game_page.show()
         self.close()
 
     def check_position(self, x, y):
@@ -142,19 +128,36 @@ class EditWin(QMainWindow, edit.Ui_MainWindow, MainDrawer):
                     return False
             return True
 
+    def delete_all_ships_from_board(self):
+        self.ships = [[0 for _ in range(12)] for _ in range(12)]
+        self.user_scene.clear()
+        self.draw_grid(self.graphicsView, self.user_scene)
+        self.ships_count = [4, 3, 2, 1]
+
 
 class GameWin(QMainWindow, game.Ui_MainWindow, MainDrawer):
     """Класс, который отвечает за окно игры"""
-    def __init__(self, username):
+    def __init__(self, username, ships):
         super(GameWin, self).__init__()
         self.setupUi(self)
         self.username = username
+        self.ships = ships
+        print('test')
+        self.user_scene = QtWidgets.QGraphicsScene()
+        self.enemy_scene = QtWidgets.QGraphicsScene()
+        print('test2')
+        self.draw_grid(self.graphicsView, self.user_scene)
+        self.draw_grid(self.graphicsView_2, self.enemy_scene)
+        print('test3')
+        self.draw_ships()
 
-        self.scene_main = QtWidgets.QGraphicsScene()
-        self.scene_en = QtWidgets.QGraphicsScene()
+        print(self.ships, self.username)
 
-        self.draw_grid(self.graphicsView, self.scene_main)
-        self.draw_grid(self.graphicsView_2, self.scene_en)
+    def mousePressEvent(self, a0: QtGui.QMouseEvent) -> None:
+        position = a0.pos()
+        item_pos = self.graphicsView_2.mapFrom(self, position)
+        x, y = item_pos.x()//40+1, item_pos.y()//40+1
+        print(y, x)
 
 
 class StartWin(QMainWindow, start.Ui_MainWindow):
@@ -169,8 +172,8 @@ class StartWin(QMainWindow, start.Ui_MainWindow):
         username = self.lineEdit.text()
         if not username:
             return
-        self.edit_page = EditWin(username)
-        self.edit_page.show()
+        edit_page = EditWin(username)
+        edit_page.show()
         self.close()
 
 
@@ -180,4 +183,3 @@ if __name__ == '__main__':
     window = StartWin()
     window.show()
     app.exec()
-
