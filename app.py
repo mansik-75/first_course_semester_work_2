@@ -57,7 +57,7 @@ class EditWin(QMainWindow, edit.Ui_MainWindow, MainDrawer):
         x, y = item_pos.x()//40+1, item_pos.y()//40+1
         print(x, y)
         if 0 < x < 11 and 0 < y < 11:
-            self.set_ship(x, y)
+            self.set_ship(y, x)
 
     def set_orientation(self, orientation):
         self.orientation = orientation
@@ -67,27 +67,27 @@ class EditWin(QMainWindow, edit.Ui_MainWindow, MainDrawer):
         print(self.ship_type)
 
     def set_ship(self, x, y):
-        check = self.check_position(y, x)
+        check = self.check_position(x, y)
         if check:
-            if self.orientation == 'v':
-                for i in range(x, x + self.ship_type):
-                    self.ships[i][y] = 1
-                    self.ships[i][y - 1] = self.ships[i][y + 1] = 2
-                self.ships[x - 1][y - 1] = self.ships[x - 1][y] = self.ships[x - 1][y + 1] = 2
-                self.ships[x + self.ship_type][y - 1] = self.ships[x + self.ship_type][y] = self.ships[x + self.ship_type][y + 1] = 2
             if self.orientation == 'g':
                 for i in range(y, y + self.ship_type):
                     self.ships[x][i] = 1
                     self.ships[x - 1][i] = self.ships[x + 1][i] = 2
                 self.ships[x - 1][y - 1] = self.ships[x][y - 1] = self.ships[x + 1][y - 1] = 2
                 self.ships[x - 1][y + self.ship_type] = self.ships[x][y + self.ship_type] = self.ships[x + 1][y + self.ship_type] = 2
+            if self.orientation == 'v':
+                for i in range(x, x + self.ship_type):
+                    self.ships[i][y] = 1
+                    self.ships[i][y - 1] = self.ships[i][y + 1] = 2
+                self.ships[x - 1][y - 1] = self.ships[x - 1][y] = self.ships[x - 1][y + 1] = 2
+                self.ships[x + self.ship_type][y - 1] = self.ships[x + self.ship_type][y] = self.ships[x + self.ship_type][y + 1] = 2
+
         for i in self.ships:
             print(*i)
         for i in range(1, 11):
             for j in range(1, 11):
-                if self.ships[j][i] == 1:
-                    print('ye')
-                    self.edit_scene.addRect((j-1)*40, (i-1)*40, 40, 40, brush=QColor(183, 117, 117))
+                if self.ships[i][j] == 1:
+                    self.edit_scene.addRect((j-1)*40+5, (i-1)*40+5, 30, 30, brush=QColor(183, 117, 117))
 
     def set_battleship(self):
         """Линкор 4 клетки"""
@@ -111,21 +111,6 @@ class EditWin(QMainWindow, edit.Ui_MainWindow, MainDrawer):
         self.close()
 
     def check_position(self, x, y):
-        if self.orientation == 'v':
-            if x + self.ship_type > 11:
-                return False
-            for i in range(x, x + self.ship_type):
-                if i == x:
-                    if self.ships[i - 1][y] == 1 or self.ships[i - 1][y - 1] == 1 or self.ships[i - 1][y + 1] == 1:
-                        return False
-                if i == (x + self.ship_type - 1):
-                    if self.ships[i + 1][y] == 1 or self.ships[i + 1][y - 1] == 1 or self.ships[i + 1][y + 1] == 1:
-                        return False
-                if self.ships[i][y] in {1, 2}:
-                    return False
-                if self.ships[i][y - 1] == 1 or self.ships[i][y + 1] == 1:
-                    return False
-            return True
         if self.orientation == 'g':
             if y + self.ship_type > 11:
                 return False
@@ -139,6 +124,21 @@ class EditWin(QMainWindow, edit.Ui_MainWindow, MainDrawer):
                 if self.ships[x][i] in {1, 2}:
                     return False
                 if self.ships[x - 1][i] == 1 or self.ships[x + 1][i] == 1:
+                    return False
+            return True
+        if self.orientation == 'v':
+            if x + self.ship_type > 11:
+                return False
+            for i in range(x, x + self.ship_type):
+                if i == x:
+                    if self.ships[i - 1][y] == 1 or self.ships[i - 1][y - 1] == 1 or self.ships[i - 1][y + 1] == 1:
+                        return False
+                if i == (x + self.ship_type - 1):
+                    if self.ships[i + 1][y] == 1 or self.ships[i + 1][y - 1] == 1 or self.ships[i + 1][y + 1] == 1:
+                        return False
+                if self.ships[i][y] in {1, 2}:
+                    return False
+                if self.ships[i][y - 1] == 1 or self.ships[i][y + 1] == 1:
                     return False
             return True
 
