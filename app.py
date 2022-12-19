@@ -4,6 +4,7 @@ from win_py import edit, game, start
 from PyQt6.QtWidgets import QMainWindow, QApplication
 from PyQt6 import QtWidgets, QtGui
 import socket
+import pickle
 import threading
 
 
@@ -39,6 +40,7 @@ class EditWin(QMainWindow, edit.Ui_MainWindow, MainDrawer):
 
         self.pushButton.clicked.connect(self.delete_all_ships_from_board)  # кнопка очистить
         self.pushButton_2.clicked.connect(self.go_to_game_page)  # кнопка подтвердить
+        self.pushButton_2.clicked.connect(self.close)  # кнопка подтвердить
 
         self.radioButton.clicked.connect(lambda: self.set_ship_type(1))
         self.radioButton_2.clicked.connect(lambda: self.set_ship_type(2))
@@ -92,9 +94,14 @@ class EditWin(QMainWindow, edit.Ui_MainWindow, MainDrawer):
     def go_to_game_page(self):
         if sum(self.ships_count) != 0:
             return
-        game_page = GameWin(self.username, self.ships)
+        global game_page
+
+        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client.connect(('localhost', 8000))
+        client.send(pickle.dumps(self.ships))
+
+        game_page = GameWin(self.username, self.ships, client)
         game_page.show()
-        self.close()
 
     def check_position(self, x, y):
         if self.orientation == 'g':
@@ -137,21 +144,21 @@ class EditWin(QMainWindow, edit.Ui_MainWindow, MainDrawer):
 
 class GameWin(QMainWindow, game.Ui_MainWindow, MainDrawer):
     """Класс, который отвечает за окно игры"""
-    def __init__(self, username, ships):
+    def __init__(self, username, ships, client):
         super(GameWin, self).__init__()
         self.setupUi(self)
         self.username = username
         self.ships = ships
-        print('test')
+        self.client = client
+
         self.user_scene = QtWidgets.QGraphicsScene()
         self.enemy_scene = QtWidgets.QGraphicsScene()
-        print('test2')
+
         self.draw_grid(self.graphicsView, self.user_scene)
         self.draw_grid(self.graphicsView_2, self.enemy_scene)
-        print('test3')
+
         self.draw_ships()
 
-        print(self.ships, self.username)
 
     def mousePressEvent(self, a0: QtGui.QMouseEvent) -> None:
         position = a0.pos()
