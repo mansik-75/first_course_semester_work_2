@@ -148,8 +148,9 @@ class GameWin(QMainWindow, game.Ui_MainWindow, MainDrawer):
         super(GameWin, self).__init__()
         self.setupUi(self)
         self.username = username
-        self.ships = ships
+        self.ships = ships  # не уверен, мб хранить массивы только на сервере, чтобы не было траблов с изменением
         self.client = client
+        self.steps = []  # массив полей, куда пользователь уже бил, их скипаем
 
         self.user_scene = QtWidgets.QGraphicsScene()
         self.enemy_scene = QtWidgets.QGraphicsScene()
@@ -159,12 +160,19 @@ class GameWin(QMainWindow, game.Ui_MainWindow, MainDrawer):
 
         self.draw_ships()
 
+        #  Создать label, чтобы пользователю было видно какой у него статус
+        status = self.client.recv(4096).decode('utf-8')
 
     def mousePressEvent(self, a0: QtGui.QMouseEvent) -> None:
         position = a0.pos()
         item_pos = self.graphicsView_2.mapFrom(self, position)
         x, y = item_pos.x()//40+1, item_pos.y()//40+1
         print(y, x)
+        if 0 < x < 11 and 0 < y < 11:
+            self.battle_step(x, y)
+
+    def battle_step(self, x, y):
+        pass
 
 
 class StartWin(QMainWindow, start.Ui_MainWindow):
