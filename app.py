@@ -1,3 +1,5 @@
+from time import sleep
+
 from PyQt6.QtGui import QColor
 
 from win_py import edit, game, start
@@ -5,7 +7,7 @@ from PyQt6.QtWidgets import QMainWindow, QApplication
 from PyQt6 import QtWidgets, QtGui
 import socket
 import pickle
-import threading
+from threading import Thread
 
 
 class MainDrawer:
@@ -155,13 +157,18 @@ class GameWin(QMainWindow, game.Ui_MainWindow, MainDrawer):
         self.user_scene = QtWidgets.QGraphicsScene()
         self.enemy_scene = QtWidgets.QGraphicsScene()
 
+        new_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        new_client.connect(('localhost', 8000))
+
+        Thread(target=receiver, args=(new_client, self.user_scene), daemon=True).start()
+
         self.draw_grid(self.graphicsView, self.user_scene)
         self.draw_grid(self.graphicsView_2, self.enemy_scene)
 
         self.draw_ships()
 
         #  Создать label, чтобы пользователю было видно какой у него статус
-        status = self.client.recv(4096).decode('utf-8')
+        self.status = self.client.recv(4096).decode('utf-8')
 
     def mousePressEvent(self, a0: QtGui.QMouseEvent) -> None:
         position = a0.pos()
@@ -169,18 +176,22 @@ class GameWin(QMainWindow, game.Ui_MainWindow, MainDrawer):
         x, y = item_pos.x()//40+1, item_pos.y()//40+1
         print(y, x)
         if 0 < x < 11 and 0 < y < 11:
-            self.battle_step(x, y)
+            self.battle_step(y, x)
 
     def battle_step(self, x, y):
         self.client.send(pickle.dumps((x, y)))
+        print('sended')
         self.steps.append((x, y))
         res = self.client.recv(4096)
+        res = int.from_bytes(res, 'little', signed=False)
+        print(res)
         if res == 1:
-            self.enemy_scene.addRect((x-1) * 40 + 5, (y-1) * 40 + 5, 30, 30, brush=QColor(255, 0, 0))
-        if res == 0:
-            self.enemy_scene.addRect((x-1) * 40 + 5, (y-1) * 40 + 5, 30, 30, brush=QColor(0, 0, 255))
-
-
+            print(res)
+            self.enemy_scene.addRect((y-1) * 40 + 5, (x-1) * 40 + 5, 30, 30, brush=QColor(255, 0, 0))
+        elif res == 0:
+            self.enemy_scene.addRect((y-1) * 40 + 5, (x-1) * 40 + 5, 30, 30, brush=QColor(0, 0, 255))
+        elif res == 2:
+            print('ты лох')
 
 
 class StartWin(QMainWindow, start.Ui_MainWindow):
@@ -200,9 +211,24 @@ class StartWin(QMainWindow, start.Ui_MainWindow):
         self.close()
 
 
+def receiver(client, scene):
+    x, y, flag = pickle.loads(client.recv(4096))
+    print('да')
+    if flag:
+        scene.addRect((y-1) * 40 + 10, (x-1) * 40 + 10, 20, 20, brush=QColor(0, 0, 0))
+    else:
+        scene.addRect((y-1) * 40 + 10, (x-1) * 40 + 10, 20, 20, brush=QColor(255, 255, 255))
+
+
 if __name__ == '__main__':
+    ships = [[2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 0], [2, 1, 2, 2, 2, 1, 1, 2, 1, 1, 2, 0], [2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 2, 2], [2, 1, 2, 2, 2, 1, 1, 2, 1, 1, 1, 2], [2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2], [2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0], [2, 1, 1, 1, 2, 0, 0, 0, 0, 0, 0, 0], [2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0], [0, 0, 0, 0, 0, 0, 0, 2, 1, 2, 0, 0], [0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0]]
 
     app = QApplication([])
-    window = StartWin()
+
+    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client.connect(('localhost', 8000))
+    client.send(pickle.dumps(ships))
+
+    window = GameWin('fuck', ships, client)
     window.show()
     app.exec()
