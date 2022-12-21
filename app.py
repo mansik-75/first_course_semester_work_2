@@ -27,6 +27,26 @@ class MainDrawer:
                 if self.ships[i][j] == 1:
                     self.user_scene.addRect((j-1)*40+5, (i-1)*40+5, 30, 30, brush=QColor(183, 117, 117))
 
+    def draw_hit(self, x, y):
+        self.enemy_scene.addRect((y - 1) * 40 + 5, (x - 1) * 40 + 5, 30, 30, brush=QColor(255, 0, 0))
+        # if (y-2) >= 0 and (x-2) >= 0:
+        #     self.enemy_scene.addRect((y - 2) * 40 + 5, (x - 2) * 40 + 5, 30, 30, brush=QColor(0, 0, 255))
+        # if y >= 0 and x >= 0:
+        #     self.enemy_scene.addRect((y) * 40 + 5, (x) * 40 + 5, 30, 30, brush=QColor(0, 0, 255))
+        # if y >= 0 and (x - 2) >= 0:
+        #     self.enemy_scene.addRect((y) * 40 + 5, (x - 2) * 40 + 5, 30, 30, brush=QColor(0, 0, 255))
+        # if (y - 2) >= 0 and x >= 0:
+        #     self.enemy_scene.addRect((y - 2) * 40 + 5, (x) * 40 + 5, 30, 30, brush=QColor(0, 0, 255))
+
+
+    def draw_miss(self, x, y):
+        self.enemy_scene.addRect((y - 1) * 40 + 5, (x - 1) * 40 + 5, 30, 30, brush=QColor(0, 0, 255))
+
+    def draw_kill(self, x, y):
+        self.enemy_scene.addRect((y - 1) * 40 + 5, (x - 1) * 40 + 5, 30, 30, brush=QColor(255, 0, 0))
+
+
+
 
 class EditWin(QMainWindow, edit.Ui_MainWindow, MainDrawer):
     """Класс, который отвечает за работу окна расстановки кораблей"""
@@ -155,6 +175,7 @@ class GameWin(QMainWindow, game.Ui_MainWindow, MainDrawer):
         self.ships = ships  # не уверен, мб хранить массивы только на сервере, чтобы не было траблов с изменением
         self.client = client
         self.steps = []  # массив полей, куда пользователь уже бил, их скипаем
+        self.hits = 0
         self.status = 0
 
         self.user_scene = QtWidgets.QGraphicsScene()
@@ -197,6 +218,8 @@ class GameWin(QMainWindow, game.Ui_MainWindow, MainDrawer):
             position = a0.pos()
             item_pos = self.graphicsView_2.mapFrom(self, position)
             x, y = item_pos.x()//40+1, item_pos.y()//40+1
+            if (y, x) in self.steps:
+                return
             print(y, x)
             if 0 < x < 11 and 0 < y < 11:
                 self.battle_step(y, x)
@@ -209,12 +232,17 @@ class GameWin(QMainWindow, game.Ui_MainWindow, MainDrawer):
         res = int.from_bytes(res, 'little', signed=False)
         print(res)
         if res == 1:
-            print(res)
-            self.enemy_scene.addRect((y-1) * 40 + 5, (x-1) * 40 + 5, 30, 30, brush=QColor(255, 0, 0))
+            self.hits += 1
+            self.draw_hit(x, y)
         elif res == 0:
-            self.enemy_scene.addRect((y-1) * 40 + 5, (x-1) * 40 + 5, 30, 30, brush=QColor(0, 0, 255))
+            self.draw_miss(x, y)
         elif res == 2:
-            print('ты лох')
+            pass
+        elif res == 3:
+            self.hits += 1
+            self.draw_kill(x, y)
+        if self.hits == 20:
+            self.label.setText("Победа!")
 
     @pyqtSlot(int, int, bool)
     def paint(self, x, y, flag):
@@ -270,14 +298,13 @@ class StartManager(QObject):
 
 
 if __name__ == '__main__':
-    ships = [[2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 0], [2, 1, 2, 2, 2, 1, 1, 2, 1, 1, 2, 0], [2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 2, 2], [2, 1, 2, 2, 2, 1, 1, 2, 1, 1, 1, 2], [2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2], [2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0], [2, 1, 1, 1, 2, 0, 0, 0, 0, 0, 0, 0], [2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0], [0, 0, 0, 0, 0, 0, 0, 2, 1, 2, 0, 0], [0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0]]
 
     app = QApplication([])
 
-    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client.connect(('localhost', 8000))
-    client.send(pickle.dumps(ships))
+    # client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # client.connect(('localhost', 8000))
+    # client.send(pickle.dumps(ships))
 
-    window = GameWin('fuck', ships, client)
+    window = StartWin()
     window.show()
     app.exec()

@@ -32,6 +32,21 @@ gamers[0][0].send('start'.encode('utf-8'))
 gamers[1][0].send('start'.encode('utf-8'))
 
 
+def check_ships(i, gamer, x, y):
+    if gamer[i - 2][2][x + 1][y] != 1 and gamer[i - 2][2][x - 1][y] != 1 and gamer[i - 2][2][x][y + 1] != 1 and \
+            gamer[i - 2][2][x][y - 1] != 1:
+        return True
+    else:
+        return False
+
+
+# def check_win(i, gamer):
+#     if gamer[i - 2][2].count('X') == 20:
+#         return 1
+#     else:
+#         return 0
+
+
 def drawer(connection, gamer_number, condition, queue, sender_thread):
     while True:
         x, y = pickle.loads(connection.recv(BUFFER_SIZE))
@@ -42,7 +57,13 @@ def drawer(connection, gamer_number, condition, queue, sender_thread):
                 if gamers[gamer_number - 2][2][x][y] == 1:
                     flag = True
                     gamers[gamer_number - 2][2][x][y] = 'X'
-                    connection.send(int('1').to_bytes(2, 'little', signed=False))
+                    # win_status = check_win(gamer_number, gamers)
+                    ch_ship = check_ships(gamer_number, gamers, x, y)
+                    if ch_ship:
+                        connection.send(int('3').to_bytes(2, 'little', signed=False))
+                    else:
+                        connection.send(int('1').to_bytes(2, 'little', signed=False))
+
                 else:
                     flag = False
                     gamers[gamer_number - 2][2][x][y] = '.'
