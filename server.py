@@ -34,9 +34,9 @@ for i in cycle([0, 1]):
     # i - 1
     if gamers[i - 1][2][x][y] == 1:
         gamers[i - 1][2][x][y] = 'X'
-        gamers[i][0].send('1'.encode('utf-8'))
+        gamers[i][0].send(1)
         gamers[i - 1][0].send(pickle.dumps((x, y)))
     else:
         gamers[i - 1][2][x][y] = '.'
-        current_gamer[0].send('0'.encode('utf-8'))
+        current_gamer[0].send(0)
         gamers[i - 1][0].send(pickle.dumps((x, y)))

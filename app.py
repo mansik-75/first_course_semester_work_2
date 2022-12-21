@@ -172,7 +172,15 @@ class GameWin(QMainWindow, game.Ui_MainWindow, MainDrawer):
             self.battle_step(x, y)
 
     def battle_step(self, x, y):
-        pass
+        self.client.send(pickle.dumps((x, y)))
+        self.steps.append((x, y))
+        res = self.client.recv(4096)
+        if res == 1:
+            self.enemy_scene.addRect((x-1) * 40 + 5, (y-1) * 40 + 5, 30, 30, brush=QColor(255, 0, 0))
+        if res == 0:
+            self.enemy_scene.addRect((x-1) * 40 + 5, (y-1) * 40 + 5, 30, 30, brush=QColor(0, 0, 255))
+
+
 
 
 class StartWin(QMainWindow, start.Ui_MainWindow):
