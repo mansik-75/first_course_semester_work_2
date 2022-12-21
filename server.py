@@ -26,6 +26,11 @@ for _ in range(2):
     else:
         conn.send('2'.encode('utf-8'))
 
+sleep(1)
+
+gamers[0][0].send('start'.encode('utf-8'))
+gamers[1][0].send('start'.encode('utf-8'))
+
 
 def drawer(connection, gamer_number, condition, queue, sender_thread):
     while True:

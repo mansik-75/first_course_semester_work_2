@@ -1,5 +1,6 @@
 from time import sleep
 
+from PyQt6.QtCore import QThread, QObject, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QColor
 
 from win_py import edit, game, start
@@ -149,10 +150,12 @@ class GameWin(QMainWindow, game.Ui_MainWindow, MainDrawer):
     def __init__(self, username, ships, client):
         super(GameWin, self).__init__()
         self.setupUi(self)
+        self.label.setText('Поиск 2 игрока...')
         self.username = username
         self.ships = ships  # не уверен, мб хранить массивы только на сервере, чтобы не было траблов с изменением
         self.client = client
         self.steps = []  # массив полей, куда пользователь уже бил, их скипаем
+        self.status = 0
 
         self.user_scene = QtWidgets.QGraphicsScene()
         self.enemy_scene = QtWidgets.QGraphicsScene()
@@ -160,7 +163,13 @@ class GameWin(QMainWindow, game.Ui_MainWindow, MainDrawer):
         new_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         new_client.connect(('localhost', 8000))
 
-        Thread(target=receiver, args=(new_client, self.user_scene), daemon=True).start()
+        self.thread1 = QThread()
+        self.battle_manager = BattleManager()
+        self.battle_manager.client = new_client
+        self.battle_manager.moveToThread(self.thread1)
+        self.battle_manager.send_data.connect(self.paint)
+        self.thread1.started.connect(self.battle_manager.run)
+        self.thread1.start()
 
         self.draw_grid(self.graphicsView, self.user_scene)
         self.draw_grid(self.graphicsView_2, self.enemy_scene)
@@ -168,15 +177,29 @@ class GameWin(QMainWindow, game.Ui_MainWindow, MainDrawer):
         self.draw_ships()
 
         #  Создать label, чтобы пользователю было видно какой у него статус
-        self.status = self.client.recv(4096).decode('utf-8')
+        answer = self.client.recv(4096).decode('utf-8')
+        print(answer)
+        if answer == '1':
+            self.thread2 = QThread()
+            self.start_manager = StartManager()
+            self.start_manager.client = self.client
+            self.start_manager.moveToThread(self.thread2)
+            self.start_manager.change_starting.connect(self.start_game)
+            self.thread2.started.connect(self.start_manager.run)
+            self.thread2.start()
+        else:
+            self.client.recv(4096)
+            self.status = 1
+            self.label.setText('Игра началась!')
 
     def mousePressEvent(self, a0: QtGui.QMouseEvent) -> None:
-        position = a0.pos()
-        item_pos = self.graphicsView_2.mapFrom(self, position)
-        x, y = item_pos.x()//40+1, item_pos.y()//40+1
-        print(y, x)
-        if 0 < x < 11 and 0 < y < 11:
-            self.battle_step(y, x)
+        if self.status != 0:
+            position = a0.pos()
+            item_pos = self.graphicsView_2.mapFrom(self, position)
+            x, y = item_pos.x()//40+1, item_pos.y()//40+1
+            print(y, x)
+            if 0 < x < 11 and 0 < y < 11:
+                self.battle_step(y, x)
 
     def battle_step(self, x, y):
         self.client.send(pickle.dumps((x, y)))
@@ -192,6 +215,18 @@ class GameWin(QMainWindow, game.Ui_MainWindow, MainDrawer):
             self.enemy_scene.addRect((y-1) * 40 + 5, (x-1) * 40 + 5, 30, 30, brush=QColor(0, 0, 255))
         elif res == 2:
             print('ты лох')
+
+    @pyqtSlot(int, int, bool)
+    def paint(self, x, y, flag):
+        if flag:
+            self.user_scene.addRect((y - 1) * 40 + 10, (x - 1) * 40 + 10, 20, 20, brush=QColor(255, 0, 0))
+        else:
+            self.user_scene.addRect((y - 1) * 40 + 10, (x - 1) * 40 + 10, 20, 20, brush=QColor(0, 0, 0))
+
+    @pyqtSlot(str)
+    def start_game(self, answer):
+        self.status = 1
+        self.label.setText('Игра началась!')
 
 
 class StartWin(QMainWindow, start.Ui_MainWindow):
@@ -211,13 +246,27 @@ class StartWin(QMainWindow, start.Ui_MainWindow):
         self.close()
 
 
-def receiver(client, scene):
-    x, y, flag = pickle.loads(client.recv(4096))
-    print('да')
-    if flag:
-        scene.addRect((y-1) * 40 + 10, (x-1) * 40 + 10, 20, 20, brush=QColor(0, 0, 0))
-    else:
-        scene.addRect((y-1) * 40 + 10, (x-1) * 40 + 10, 20, 20, brush=QColor(255, 255, 255))
+class BattleManager(QObject):
+    running = False
+    send_data = pyqtSignal(int, int, bool)
+    client = 0
+
+    def run(self):
+        while True:
+            x, y, flag = pickle.loads(self.client.recv(4096))
+            print('да')
+            self.send_data.emit(x, y, flag)
+
+
+class StartManager(QObject):
+    running = False
+    change_starting = pyqtSignal(str)
+    client = 0
+
+    def run(self):
+        ans = self.client.recv(4096).decode('utf-8')
+        print(ans)
+        self.change_starting.emit('да')
 
 
 if __name__ == '__main__':
