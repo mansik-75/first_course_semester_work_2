@@ -29,20 +29,13 @@ class MainDrawer:
 
     def draw_hit(self, x, y):
         self.enemy_scene.addRect((y - 1) * 40 + 5, (x - 1) * 40 + 5, 30, 30, brush=QColor(255, 0, 0))
-        # if (y-2) >= 0 and (x-2) >= 0:
-        #     self.enemy_scene.addRect((y - 2) * 40 + 5, (x - 2) * 40 + 5, 30, 30, brush=QColor(0, 0, 255))
-        # if 0 <= y < 11 and 0 <= x < 11:
-        #     self.enemy_scene.addRect((y) * 40 + 5, (x) * 40 + 5, 30, 30, brush=QColor(0, 0, 255))
-        # if 0 <= y < 11 and (x - 2) >= 0:
-        #     self.enemy_scene.addRect((y) * 40 + 5, (x - 2) * 40 + 5, 30, 30, brush=QColor(0, 0, 255))
-        # if (y - 2) >= 0 and 0 <= x < 11:
-        #     self.enemy_scene.addRect((y - 2) * 40 + 5, (x) * 40 + 5, 30, 30, brush=QColor(0, 0, 255))
 
     def draw_miss(self, x, y):
         self.enemy_scene.addRect((y - 1) * 40 + 5, (x - 1) * 40 + 5, 30, 30, brush=QColor(0, 0, 255))
 
     def draw_kill(self, x, y):
-        self.enemy_scene.addRect((y - 1) * 40 + 5, (x - 1) * 40 + 5, 30, 30, brush=QColor(255, 0, 0))
+        self.draw_hit(x, y)
+
 
 
 class EditWin(QMainWindow, edit.Ui_MainWindow, MainDrawer):
