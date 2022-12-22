@@ -31,21 +31,18 @@ class MainDrawer:
         self.enemy_scene.addRect((y - 1) * 40 + 5, (x - 1) * 40 + 5, 30, 30, brush=QColor(255, 0, 0))
         # if (y-2) >= 0 and (x-2) >= 0:
         #     self.enemy_scene.addRect((y - 2) * 40 + 5, (x - 2) * 40 + 5, 30, 30, brush=QColor(0, 0, 255))
-        # if y >= 0 and x >= 0:
+        # if 0 <= y < 11 and 0 <= x < 11:
         #     self.enemy_scene.addRect((y) * 40 + 5, (x) * 40 + 5, 30, 30, brush=QColor(0, 0, 255))
-        # if y >= 0 and (x - 2) >= 0:
+        # if 0 <= y < 11 and (x - 2) >= 0:
         #     self.enemy_scene.addRect((y) * 40 + 5, (x - 2) * 40 + 5, 30, 30, brush=QColor(0, 0, 255))
-        # if (y - 2) >= 0 and x >= 0:
+        # if (y - 2) >= 0 and 0 <= x < 11:
         #     self.enemy_scene.addRect((y - 2) * 40 + 5, (x) * 40 + 5, 30, 30, brush=QColor(0, 0, 255))
-
 
     def draw_miss(self, x, y):
         self.enemy_scene.addRect((y - 1) * 40 + 5, (x - 1) * 40 + 5, 30, 30, brush=QColor(0, 0, 255))
 
     def draw_kill(self, x, y):
         self.enemy_scene.addRect((y - 1) * 40 + 5, (x - 1) * 40 + 5, 30, 30, brush=QColor(255, 0, 0))
-
-
 
 
 class EditWin(QMainWindow, edit.Ui_MainWindow, MainDrawer):
@@ -177,6 +174,7 @@ class GameWin(QMainWindow, game.Ui_MainWindow, MainDrawer):
         self.steps = []  # массив полей, куда пользователь уже бил, их скипаем
         self.hits = 0
         self.status = 0
+        self.setWindowTitle(f"Хорошей игры, {self.username}")
 
         self.user_scene = QtWidgets.QGraphicsScene()
         self.enemy_scene = QtWidgets.QGraphicsScene()
@@ -215,6 +213,7 @@ class GameWin(QMainWindow, game.Ui_MainWindow, MainDrawer):
 
     def mousePressEvent(self, a0: QtGui.QMouseEvent) -> None:
         if self.status != 0:
+            self.label.setText('Игра')
             position = a0.pos()
             item_pos = self.graphicsView_2.mapFrom(self, position)
             x, y = item_pos.x()//40+1, item_pos.y()//40+1
@@ -226,7 +225,6 @@ class GameWin(QMainWindow, game.Ui_MainWindow, MainDrawer):
 
     def battle_step(self, x, y):
         self.client.send(pickle.dumps((x, y)))
-        print('sended')
         self.steps.append((x, y))
         res = self.client.recv(4096)
         res = int.from_bytes(res, 'little', signed=False)
@@ -241,8 +239,13 @@ class GameWin(QMainWindow, game.Ui_MainWindow, MainDrawer):
         elif res == 3:
             self.hits += 1
             self.draw_kill(x, y)
+            self.label.setText('Потопил!')
+        elif res == 4:
+            self.label.setText('Поражение')
+            self.status = 0
         if self.hits == 20:
             self.label.setText("Победа!")
+            self.status = 0
 
     @pyqtSlot(int, int, bool)
     def paint(self, x, y, flag):
